@@ -45,7 +45,7 @@ inline at::detail::Array<arg_t, out_vec_sz> group_reduce(
   for (int offset = 1; offset < sg_size; offset <<= 1) {
 #pragma unroll(out_vec_sz)
     for (int i = 0; i < out_vec_sz; ++i) {
-      arg_t other = sg.shuffle_down(value[i], offset);
+      arg_t other = sycl::shift_group_left(sg, value[i], offset);
       value[i] = combine(value[i], other);
     }
   }
@@ -66,7 +66,7 @@ inline at::detail::Array<arg_t, out_vec_sz> group_reduce(
       for (int offset = 1; offset < sg_range; offset <<= 1) {
 #pragma unroll(out_vec_sz)
         for (int i = 0; i < out_vec_sz; ++i) {
-          arg_t other = sg.shuffle_down(value[i], offset);
+          arg_t other = sycl::shift_group_left(sg, value[i], offset);
           value[i] = combine(value[i], other);
         }
       }
@@ -127,7 +127,7 @@ inline at::detail::Array<arg_t, out_vec_sz> group_x_reduce(
   for (int offset = 1; offset < dim_x; offset <<= 1) {
 #pragma unroll(out_vec_sz)
     for (int i = 0; i < out_vec_sz; ++i) {
-      arg_t other = sg.shuffle_down(value[i], offset);
+      arg_t other = sycl::shift_group_left(sg, value[i], offset);
       value[i] = combine(value[i], other);
     }
   }
@@ -849,7 +849,7 @@ struct ReduceOp {
     for (int offset = 1; offset < sbgrpSize; offset <<= 1) {
 #pragma unroll(output_vec_size)
       for (int i = 0; i < output_vec_size; ++i) {
-        arg_t other = sg.shuffle_down(value[i], offset);
+        arg_t other = sycl::shift_group_left(sg, value[i], offset);
         value[i] = ops.combine(value[i], other);
       }
     }
@@ -878,8 +878,8 @@ struct ReduceOp {
                 other = std::pair<
                     typename arg_t::first_type,
                     typename arg_t::second_type>(
-                    sg.shuffle_down(value[i].first, offset),
-                    sg.shuffle_down(value[i].second, offset));
+                    sycl::shift_group_left(sg, value[i].first, offset),
+                    sycl::shift_group_left(sg, value[i].second, offset));
             value[i] = ops.combine(value[i], other);
           }
         }
@@ -948,8 +948,8 @@ struct ReduceOp {
         std::pair<typename arg_t::first_type, typename arg_t::second_type>
             other = std::
                 pair<typename arg_t::first_type, typename arg_t::second_type>(
-                    sg.shuffle_down(value[i].first, offset),
-                    sg.shuffle_down(value[i].second, offset));
+                    sycl::shift_group_left(sg, value[i].first, offset),
+                    sycl::shift_group_left(sg, value[i].second, offset));
         value[i] = ops.combine(value[i], other);
       }
     }
