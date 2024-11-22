@@ -1018,16 +1018,33 @@ struct ReduceOp {
     return *out;
   }
 
+  template <typename T>
+  class has_first {
+   private:
+    template <typename U>
+    static auto check(int) -> decltype(std::declval<U>().first, std::true_type());
+
+    template <typename U>
+    static std::false_type check(...);
+
+   public:
+    static constexpr bool value = decltype(check<T>(0))::value;
+  };
+
   template <class T>
-  void set_results(const T x, const index_t base_offset) const {
+  typename std::enable_if<!has_first<T>::value>::type
+  set_results(const T x, const index_t base_offset) const {
     assert(noutputs == 1);
     auto res = (out_scalar_t*)((char*)dst[0] + base_offset);
     *res = x;
   }
 
   // Currently implemented for max of two outputs
-  template <class T1, class T2>
-  void set_results(const std::pair<T1, T2> x, const index_t base_offset) const {
+  template <class T>
+  typename std::enable_if<has_first<T>::value>::type
+  set_results(const T x, const index_t base_offset) const {
+    using T1 = typename std::remove_reference<decltype(x.first)>::type;
+    using T2 = typename std::remove_reference<decltype(x.second)>::type;
     if (noutputs >= 1) {
       auto res0 = (T1*)((char*)dst[0] + base_offset);
       *res0 = x.first;

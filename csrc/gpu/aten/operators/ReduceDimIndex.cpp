@@ -43,14 +43,16 @@ template <typename comp_t>
 struct MinMaxReductionOps {
   using scalar_t = typename binary_function_traits<comp_t>::arg1_t;
   using index_t = int64_t;
-  using arg_t = std::pair<scalar_t, index_t>;
+  struct ident {scalar_t first; index_t second;};
+  using arg_t = ident;
 
   static arg_t project(arg_t arg) {
     return arg;
   }
 
   static arg_t reduce(arg_t arg, scalar_t val, int64_t idx) {
-    return comp_t{}(arg.first, val, arg.second, idx) ? arg : arg_t(val, idx);
+    arg_t ret{val, idx};
+    return comp_t{}(arg.first, val, arg.second, idx) ? arg : ret;
   }
 
   static arg_t combine(arg_t a, arg_t b) {
@@ -74,6 +76,7 @@ struct MinOps : public MinMaxReductionOps<LessOrNan<scalar_t>> {};
 
 template <typename scalar_t>
 struct MaxOps : public MinMaxReductionOps<GreaterOrNan<scalar_t>> {};
+
 
 std::tuple<Tensor&, Tensor&> _min_out(
     Tensor& min,
@@ -102,8 +105,7 @@ std::tuple<Tensor&, Tensor&> _min_out(
           dpcpp_reduce_kernel<scalar_t, scalar_t, 4 /* vt0 */, 2 /* vt1 */>(
               iter,
               MinOps<scalar_t>{},
-              std::pair<scalar_t, int64_t>(
-                  Numerics<scalar_t>::upper_bound(), 0));
+               MinOps<scalar_t>::arg_t{Numerics<scalar_t>::upper_bound(), 0});
         });
 
     return {min, min_indices};
@@ -158,8 +160,7 @@ std::tuple<Tensor&, Tensor&> _max_out(
           dpcpp_reduce_kernel<scalar_t, scalar_t, 4 /* vt0 */, 2 /* vt1 */>(
               iter,
               MaxOps<scalar_t>{},
-              std::pair<scalar_t, int64_t>(
-                  Numerics<scalar_t>::lower_bound(), 0));
+              MaxOps<scalar_t>::arg_t{Numerics<scalar_t>::lower_bound(), 0});
         });
 
     return {max, max_indices};

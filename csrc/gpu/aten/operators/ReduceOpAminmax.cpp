@@ -24,7 +24,8 @@ namespace AtenIpexTypeXPU {
 
 template <typename scalar_t, typename acc_scalar_t, typename index_t>
 struct MinMaxOps {
-  using acc_t = std::pair<acc_scalar_t, acc_scalar_t>;
+  struct ident {acc_scalar_t first; acc_scalar_t second;};
+  using acc_t = ident;
   inline acc_t reduce(acc_t acc, scalar_t data, int64_t idx) const {
     return combine(acc, {data, data});
   }
@@ -59,9 +60,8 @@ void _min_max_values_kernel_dpcpp_impl(TensorIterator& iter) {
   dpcpp_reduce_kernel<scalar_t, scalar_t>(
       iter,
       MinMaxOps<scalar_t, scalar_t, int32_t>{},
-      std::pair<scalar_t, scalar_t>(
-          std::numeric_limits<scalar_t>::max(),
-          std::numeric_limits<scalar_t>::lowest()));
+       typename MinMaxOps<scalar_t, scalar_t, int32_t>::acc_t{std::numeric_limits<scalar_t>::max(),
+                                                              std::numeric_limits<scalar_t>::lowest()});
 }
 
 void aminmax_kernel(TensorIterator& iter) {

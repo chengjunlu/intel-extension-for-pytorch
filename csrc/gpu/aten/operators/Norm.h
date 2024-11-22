@@ -851,11 +851,11 @@ struct RowwiseMomentsDPCPPKernelFunctor {
           last_workgroup,
           [](accscalar_t a, accscalar_t b) { return a + b; });
       if (last_workgroup[0] && local_id == 0) {
-        norm.template reduce_project(item_id, sum1, sum2, cfg);
+        norm.template reduce_project<sycl::nd_item<3>>(item_id, sum1, sum2, cfg);
       }
     } else {
       if (local_id == 0) {
-        norm.template reduce_project(item_id, sum1, sum2, cfg);
+        norm.template reduce_project<sycl::nd_item<3>>(item_id, sum1, sum2, cfg);
       }
     }
   }
